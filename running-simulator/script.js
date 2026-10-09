@@ -131,11 +131,23 @@ class Player {
     }
     this.glow.material.opacity = 0.3 + Math.sin(performance.now() * 0.005) * 0.1;
   }
+  reset() {
+    this.x = CONFIG.PLAYER_X;
+    this.y = CONFIG.GROUND_Y;
+    this.z = 0;
+    this.velocityY = 0;
+    this.onGround = true;
+    this.targetX = CONFIG.PLAYER_X;
+    this.setShield(false);
+    this.update(0);
+  }
   moveLeft() {
-    if (this.targetX > -CONFIG.LANE_WIDTH / 2) this.targetX -= CONFIG.LANE_WIDTH;
+    if (!this.onGround) return;
+    if (this.targetX < CONFIG.LANE_WIDTH) this.targetX += CONFIG.LANE_WIDTH;
   }
   moveRight() {
-    if (this.targetX < CONFIG.LANE_WIDTH / 2) this.targetX += CONFIG.LANE_WIDTH;
+    if (!this.onGround) return;
+    if (this.targetX > -CONFIG.LANE_WIDTH) this.targetX -= CONFIG.LANE_WIDTH;
   }
   jump() {
     if (this.onGround) {
@@ -221,7 +233,11 @@ class Obstacle {
       this.mesh.position.x = this.x;
       this.glow.position.x = this.x;
     }
-    if (this.z - playerZ > CONFIG.SPAWN_AHEAD + 50) this.active = false;
+    if (playerZ - this.z > CONFIG.DESPAWN_BEHIND) {
+      this.active = false;
+      this.mesh.visible = false;
+      this.glow.visible = false;
+    }
   }
   getBoundingBox() {
     return {
@@ -287,8 +303,8 @@ class Coin {
     }
   }
   distanceTo(px, pz) {
-    var dx = this.x - px,
-      dz = this.z - pz;
+    var dx = this.mesh.position.x - px,
+      dz = this.mesh.position.z - pz;
     return Math.sqrt(dx * dx + dz * dz);
   }
   dispose() {
@@ -305,10 +321,11 @@ class Zone {
   constructor(number, scene) {
     this.number = number;
     this.scene = scene;
-    this.startZ = -(number - 1) * CONFIG.ZONE_LENGTH;
-    this.endZ = this.startZ - CONFIG.ZONE_LENGTH;
+    this.startZ = (number - 1) * CONFIG.ZONE_LENGTH;
+    this.endZ = this.startZ + CONFIG.ZONE_LENGTH;
     this.obstacles = [];
     this.coins = [];
+    this.laneLines = [];
     this.color = ZONE_COLORS[(number - 1) % ZONE_COLORS.length];
     var geo = new THREE.PlaneGeometry(CONFIG.LANE_WIDTH * CONFIG.LANES, CONFIG.ZONE_LENGTH);
     var mat = new THREE.MeshStandardMaterial({
@@ -318,7 +335,7 @@ class Zone {
     });
     this.mesh = new THREE.Mesh(geo, mat);
     this.mesh.rotation.x = -Math.PI / 2;
-    this.mesh.position.set(2.5, CONFIG.GROUND_Y + 0.01, this.startZ - CONFIG.ZONE_LENGTH / 2);
+    this.mesh.position.set(0, CONFIG.GROUND_Y + 0.01, this.startZ + CONFIG.ZONE_LENGTH / 2);
     this.scene.add(this.mesh);
     for (var i = 1; i < CONFIG.LANES; i++) {
       var lg = new THREE.PlaneGeometry(0.05, CONFIG.ZONE_LENGTH);
@@ -329,8 +346,9 @@ class Zone {
       });
       var ln = new THREE.Mesh(lg, lm);
       ln.rotation.x = -Math.PI / 2;
-      ln.position.set(i * CONFIG.LANE_WIDTH - CONFIG.LANE_WIDTH / 2, CONFIG.GROUND_Y + 0.02, this.startZ - CONFIG.ZONE_LENGTH / 2);
+      ln.position.set((i - CONFIG.LANES / 2) * CONFIG.LANE_WIDTH, CONFIG.GROUND_Y + 0.02, this.startZ + CONFIG.ZONE_LENGTH / 2);
       this.scene.add(ln);
+      this.laneLines.push(ln);
     }
   }
   addObstacle(t, l, z) {
@@ -351,6 +369,12 @@ class Zone {
       this.scene.remove(this.mesh);
       this.mesh.geometry.dispose();
       this.mesh.material.dispose();
+    }
+    for (var i = 0; i < this.laneLines.length; i++) {
+      var laneLine = this.laneLines[i];
+      this.scene.remove(laneLine);
+      laneLine.geometry.dispose();
+      laneLine.material.dispose();
     }
     for (var i = 0; i < this.obstacles.length; i++) this.obstacles[i].dispose();
     for (var j = 0; j < this.coins.length; j++) this.coins[j].dispose();
@@ -497,7 +521,7 @@ class Game {
     this.distance = 0;
     this.coins = 0;
     this.isPlaying = false;
-    this.gameOver = false;
+    this.isGameOver = false;
     this.spawnTimer = 0;
     this.coinSpawnTimer = 0;
     this.lastPlayerZ = 0;
@@ -569,13 +593,15 @@ class Game {
   }
   start() {
     this.isPlaying = true;
-    this.gameOver = false;
+    this.isGameOver = false;
     this.distance = 0;
     this.coins = 0;
     this.gameSpeed = CONFIG.BASE_SPEED + (this.shop ? this.shop.getSpeedBonus() : 0);
     this.lastPlayerZ = 0;
     this.spawnTimer = 0;
     this.coinSpawnTimer = 0;
+    this.player.reset();
+    this.player.setShield(this.shop.hasShield());
     for (var i = 0; i < this.zones.length; i++) this.zones[i].dispose();
     this.zones = [];
     this.currentZone = null;
@@ -592,46 +618,55 @@ class Game {
     if (n > 3) z.addObstacle("moving", 0, z.startZ + 70);
     if (n > 4) {
       z.addObstacle("barrier", -1, z.startZ + 90);
-      z.addObstacle("wall", 1, z.startZ + 120);
+      z.addObstacle("wall", 1, z.startZ + 80);
     }
     if (n % 2 === 0) z.addObstacle("moving", 0, z.startZ + 40);
     for (var i = 0; i < 5; i++) {
-      var cl = Math.floor(Math.random() * CONFIG.LANES);
+      var cl = Math.floor(Math.random() * CONFIG.LANES) - 1;
       var cz = z.startZ + 10 + Math.random() * (CONFIG.ZONE_LENGTH - 20);
       z.addCoin(cl, cz);
     }
     this.currentZone = z;
   }
   update(dt) {
-    if (!this.isPlaying || this.gameOver) return;
+    if (!this.isPlaying || this.isGameOver) return;
     this.player.z += this.gameSpeed * dt;
+    this.player.update(dt);
     this.distance = Math.floor(this.player.z);
     this.lastPlayerZ = this.player.z;
+    for (var i = this.zones.length - 1; i >= 0; i--) {
+      if (!this.zones[i].isNear(this.player.z)) {
+        this.zones[i].dispose();
+        this.zones.splice(i, 1);
+      }
+    }
+    var latestZone = this.zones[this.zones.length - 1];
+    while (!latestZone || latestZone.endZ < this.player.z + CONFIG.SPAWN_AHEAD + CONFIG.DESPAWN_BEHIND) {
+      this.createZone(latestZone ? latestZone.number + 1 : 1);
+      latestZone = this.zones[this.zones.length - 1];
+    }
+    this.currentZone = latestZone;
     this.spawnTimer -= dt;
     if (this.spawnTimer <= 0) {
-      var nl = Math.floor(Math.random() * CONFIG.LANES);
+      var nl = Math.floor(Math.random() * CONFIG.LANES) - 1;
       var types = ["barrier", "wall"];
       if (Math.random() < 0.3) types.push("moving");
-      this.currentZone.addObstacle(types[Math.floor(Math.random() * types.length)], nl, this.player.z + CONFIG.SPAWN_AHEAD - Math.random() * 40);
+      var obstacleZ = this.player.z + CONFIG.SPAWN_AHEAD - Math.random() * 40;
+      var obstacleZone = this.zones.find(function(zone) {
+        return obstacleZ >= zone.startZ && obstacleZ < zone.endZ;
+      });
+      obstacleZone.addObstacle(types[Math.floor(Math.random() * types.length)], nl, obstacleZ);
       this.spawnTimer = 1.5 + Math.random() * 2;
     }
     this.coinSpawnTimer -= dt;
     if (this.coinSpawnTimer <= 0) {
-      var cl = Math.floor(Math.random() * CONFIG.LANES);
-      this.currentZone.addCoin(cl, this.player.z + CONFIG.SPAWN_AHEAD - 20 - Math.random() * 30);
+      var cl = Math.floor(Math.random() * CONFIG.LANES) - 1;
+      var coinZ = this.player.z + CONFIG.SPAWN_AHEAD - 20 - Math.random() * 30;
+      var coinZone = this.zones.find(function(zone) {
+        return coinZ >= zone.startZ && coinZ < zone.endZ;
+      });
+      coinZone.addCoin(cl, coinZ);
       this.coinSpawnTimer = 0.8 + Math.random() * 1;
-    }
-    for (var i = this.zones.length - 1; i >= 0; i--) {
-      if (!this.zones[i].isNear(this.player.z)) {
-        if (i > 0) this.zones[i].dispose();
-        this.zones.splice(i, 1);
-      } else {
-        this.currentZone = this.zones[i];
-      }
-    }
-    var nzNum = this.zones.length + 1;
-    if (!this.zones[this.zones.length - 1] || this.zones[this.zones.length - 1].startZ < this.player.z - CONFIG.ZONE_LENGTH * 0.5) {
-      this.createZone(nzNum);
     }
     for (var k = 0; k < this.zones.length; k++) {
       for (var m = 0; m < this.zones[k].obstacles.length; m++) {
@@ -641,9 +676,18 @@ class Game {
           if (!obs.active) continue;
           var pb = this.player.getBoundingBox();
           var ob = obs.getBoundingBox();
-          if (pb.minX < ob.maxZ && pb.maxX > ob.minX && pb.minY < ob.maxY && pb.maxY > ob.minY) {
-            var mbx = Math.abs((ob.minX + ob.maxX) / 2 - (pb.minX + pb.maxX) / 2);
-            if (mbx < (this.player.width + obs.depth) / 2 + 0.3 && Math.abs(this.player.z - obs.z) < 1.5) {}
+          if (pb.minX < ob.maxX && pb.maxX > ob.minX &&
+              pb.minY < ob.maxY && pb.maxY > ob.minY &&
+              pb.minZ < ob.maxZ && pb.maxZ > ob.minZ) {
+            if (this.player.shieldActive) {
+              this.player.setShield(false);
+              obs.active = false;
+              obs.mesh.visible = false;
+              obs.glow.visible = false;
+            } else {
+              this.gameOver();
+              return;
+            }
           }
         }
       }
@@ -666,7 +710,6 @@ class Game {
         }
       }
     }
-    this.player.update(dt);
     this.camera.position.z = this.player.z - 8;
     this.camera.position.x = CONFIG.PLAYER_X - 3;
     this.ground.position.z = this.player.z + 250;
@@ -687,9 +730,10 @@ class Game {
       this.shop.addCoins(Math.floor(this.distance / 10));
     }
     this.isPlaying = false;
-    this.gameOver = true;
+    this.isGameOver = true;
     var goScreen = document.getElementById("gameOverScreen");
     if (goScreen) {
+      goScreen.classList.remove("hidden");
       goScreen.style.display = "flex";
       document.getElementById("goMeters").textContent = Math.floor(this.distance) + " m";
       var zn = this.zones.length > 0 ? this.zones[this.zones.length - 1].number : 1;
@@ -721,6 +765,8 @@ window.addEventListener("load", function() {
       document.getElementById("shopScreen").style.display = "none";
       document.getElementById("gameOverScreen").style.display = "none";
       document.getElementById("hud").style.display = "flex";
+      document.getElementById("hud").classList.remove("hidden");
+      document.getElementById("gameOverScreen").classList.add("hidden");
 
       if (!game) {
         game = new Game();
@@ -735,6 +781,7 @@ window.addEventListener("load", function() {
   if (btn2) {
     btn2.addEventListener("click", function() {
       document.getElementById("gameOverScreen").style.display = "none";
+      document.getElementById("gameOverScreen").classList.add("hidden");
       document.getElementById("shopScreen").style.display = "flex";
       document.getElementById("hud").style.display = "none";
 
