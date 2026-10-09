@@ -1,0 +1,451 @@
+﻿/* ============================================
+   3D Симулятор ега — сновные стили
+   ============================================ */
+
+/* --- Сброс и базовые стили --- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Roboto', Arial, sans-serif;
+    background-color: #0a0a1a;
+    color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+/* --- олноэкранный canvas для 3D-сцены --- */
+#gameCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    display: block;
+}
+
+/* --- азовый оверлей --- */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 10, 26, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* --- онтент оверлея --- */
+.overlay-content {
+    background: rgba(20, 20, 50, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* --- аголовки --- */
+.title {
+    font-size: 2rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 24px;
+}
+
+/* --- HUD (Head-Up Display) --- */
+#hud {
+    z-index: 10;
+    justify-content: flex-start;
+    align-items: flex-start;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+#hud.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.hud-item {
+    position: absolute;
+    top: 16px;
+    padding: 8px 16px;
+    background: rgba(20, 20, 50, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    min-width: 120px;
+}
+
+.hud-item:nth-child(1) { left: 16px; }
+.hud-item:nth-child(2) { left: 152px; }
+.hud-item:nth-child(3) { right: 152px; }
+.hud-item:nth-child(4) { right: 16px; }
+
+.hud-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.hud-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* --- нопки --- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(123, 47, 247, 0.4);
+}
+
+.btn-primary:hover {
+    box-shadow: 0 6px 24px rgba(123, 47, 247, 0.6);
+    filter: brightness(1.1);
+}
+
+.btn-large {
+    padding: 16px 32px;
+    font-size: 1.2rem;
+    border-radius: 14px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+/* --- аланс монет --- */
+.coin-display {
+    display: inline-block;
+    padding: 10px 20px;
+    background: rgba(255, 200, 0, 0.15);
+    border: 1px solid rgba(255, 200, 0, 0.3);
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffc800;
+    margin-bottom: 20px;
+}
+
+/* --- Список улучшений (Shop) --- */
+.upgrades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 240px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+    padding-right: 4px;
+}
+
+.upgrades-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.upgrades-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+}
+
+.upgrades-list::-webkit-scrollbar-thumb {
+    background: rgba(123, 47, 247, 0.5);
+    border-radius: 2px;
+}
+
+/* --- одсказки управления --- */
+.controls-hint {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.6;
+}
+
+.controls-hint p {
+    margin: 0;
+}
+
+.controls-hint strong {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* --- Статистика (Game Over) --- */
+.stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+/* --- Свайп-индикаторы (для тач-устройств) --- */
+.swipe-indicator {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    background: rgba(20, 20, 50, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: none;
+}
+
+/* --- Адаптивность под мобильные устройства --- */
+@media (max-width: 768px) {
+    .overlay-content {
+        padding: 20px;
+        max-width: 100%;
+        width: 95%;
+        border-radius: 12px;
+    }
+
+    .title {
+        font-size: 1.5rem;
+    }
+
+    .subtitle {
+        font-size: 0.85rem;
+        margin-bottom: 16px;
+    }
+
+    .coin-display {
+        font-size: 0.95rem;
+        padding: 8px 14px;
+        margin-bottom: 14px;
+    }
+
+    .upgrades-list {
+        max-height: 180px;
+        margin-bottom: 4px;
+    }
+
+    .btn-large {
+        padding: 14px 24px;
+        font-size: 1rem;
+    }
+
+    /* HUD на мобильных */
+    .hud-item {
+        top: 8px;
+        padding: 6px 10px;
+        min-width: auto;
+    }
+
+    .hud-item:nth-child(1) { left: 8px; }
+    .hud-item:nth-child(2) { left: calc(25% - 10px); }
+    .hud-item:nth-child(3) { right: calc(25% - 10px); }
+    .hud-item:nth-child(4) { right: 8px; }
+
+    .hud-label {
+        font-size: 0.6rem;
+    }
+
+    .hud-value {
+        font-size: 0.95rem;
+    }
+
+    /* Показываем свайп-индикаторы на тач-устройствах */
+    @supports (hover: none) {
+        .swipe-indicator {
+            display: block;
+        }
+    }
+
+    .controls-hint {
+        font-size: 0.75rem;
+        padding: 10px;
+    }
+
+    .stat-item {
+        padding: 8px 12px;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+    }
+
+    .stat-value {
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .overlay-content {
+        padding: 16px;
+    }
+
+    .title {
+        font-size: 1.3rem;
+    }
+
+    .hud-item {
+        top: 4px;
+        padding: 4px 8px;
+    }
+
+    .hud-label {
+        font-size: 0.55rem;
+    }
+
+    .hud-value {
+        font-size: 0.85rem;
+    }
+
+    .btn-large {
+        padding: 12px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* --- Анимации --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.overlay-content {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* --- Стили для карточек улучшений (динамически генерируемые) --- */
+.upgrade-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.upgrade-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(123, 47, 247, 0.3);
+}
+
+.upgrade-card.purchased {
+    opacity: 0.5;
+    border-color: rgba(0, 212, 100, 0.3);
+}
+
+.upgrade-info {
+    text-align: left;
+}
+
+.upgrade-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 2px;
+}
+
+.upgrade-desc {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.upgrade-price {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #ffc800;
+    white-space: nowrap;
+}
+
+.upgrade-card.purchased .upgrade-price {
+    color: #00d464;
+}
+
+/* --- Фокус для доступности --- */
+.btn:focus-visible {
+    outline: 2px solid #00d4ff;
+    outline-offset: 2px;
+}

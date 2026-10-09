@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Симулятор Бега</title>
+
+    <!-- Подключение шрифта Roboto -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
+
+    <!-- Стили -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js через CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/three@latest/build/three.min.js"></script>
+</head>
+<body>
+    <!-- Канвас для рендера 3D-сцены -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- ===== HUD (отображается во время забега) ===== -->
+    <div id="hud" class="overlay hidden">
+        <div class="hud-item">
+            <span class="hud-label">Скорость</span>
+            <span class="hud-value" id="hudSpeed">0 м/с</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">Зона</span>
+            <span class="hud-value" id="hudZone">1</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">Метры</span>
+            <span class="hud-value" id="hudMeters">0 м</span>
+        </div>
+        <div class="hud-item">
+            <span class="hud-label">Монеты</span>
+            <span class="hud-value" id="hudCoins">0 🪙</span>
+        </div>
+    </div>
+
+    <!-- ===== Экран магазина (стартовая площадка) ===== -->
+    <div id="shopScreen" class="overlay shop-overlay">
+        <div class="overlay-content">
+            <h1 class="title">🏃 3D Симулятор Бега</h1>
+            <p class="subtitle">Улучшай способности — беги дальше!</p>
+
+            <!-- Баланс монет -->
+            <div class="coin-display">
+                💰 <span id="shopCoins">0</span> монет
+            </div>
+
+            <!-- Карточки улучшений -->
+            <div class="upgrades-list" id="upgradesList">
+                <!-- Генерируется из script.js -->
+            </div>
+
+            <!-- Кнопка начала забега -->
+            <button class="btn btn-primary btn-large" id="btnStartRun">
+                🏁 Начать забег
+            </button>
+
+            <!-- Подсказки управления -->
+            <div class="controls-hint">
+                <p><strong>Управление:</strong></p>
+                <p>← → или A/D — смена дорожки</p>
+                <p>Пробел / ↑ / W — прыжок</p>
+                <p>Свайпы на мобильных</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== Экран Game Over ===== -->
+    <div id="gameOverScreen" class="overlay gameover-overlay hidden">
+        <div class="overlay-content">
+            <h1 class="title">💥 Авария!</h1>
+            <p class="subtitle">Ты врезался в препятствие</p>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Пройдено:</span>
+                    <span class="stat-value" id="goMeters">0 м</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Зона достигнута:</span>
+                    <span class="stat-value" id="goZone">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Монеты за забег:</span>
+                    <span class="stat-value" id="goCoins">0 🪙</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-large" id="btnReturnToShop">
+                🏠 На стартовую площадку
+            </button>
+        </div>
+    </div>
+
+    <!-- Скрипт игры -->
+    <script src="script.js"></script>
+</body>
+</html>
